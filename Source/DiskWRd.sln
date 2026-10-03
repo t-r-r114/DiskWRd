@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37710.0 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DiskWRd", "DiskWRd.vcxproj", "{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Debug|ARM64.Build.0 = Debug|ARM64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Debug|x64.ActiveCfg = Debug|x64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Debug|x64.Build.0 = Debug|x64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Debug|x64.Deploy.0 = Debug|x64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Release|ARM64.ActiveCfg = Release|ARM64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Release|ARM64.Build.0 = Release|ARM64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Release|ARM64.Deploy.0 = Release|ARM64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Release|x64.ActiveCfg = Release|x64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Release|x64.Build.0 = Release|x64
+		{D56AA7DB-EFFA-5B76-E9F6-6E090CF242B6}.Release|x64.Deploy.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C1871C7F-9A06-4CB2-9BFB-1E84EB950793}
+	EndGlobalSection
+EndGlobal
