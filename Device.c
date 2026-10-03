@@ -15,21 +15,6 @@
  * limitations under the License.
  */
 
-/*++
-
-Module Name:
-
-    device.c - Device handling events for example driver.
-
-Abstract:
-
-   This file contains the device entry points and callbacks.
-    
-Environment:
-
-    Kernel-mode Driver Framework
-
---*/
 #include <ntddk.h>
 #include <wdf.h>
 #include <ntstrsafe.h>
