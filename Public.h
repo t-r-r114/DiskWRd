@@ -1,19 +1,19 @@
-/*++
-
-Module Name:
-
-    public.h
-
-Abstract:
-
-    This module contains the common declarations shared by driver
-    and user applications.
-
-Environment:
-
-    user and kernel
-
---*/
+/*
+ * DiskWRd - Windows ç£ç›˜è¯»å†™é©±åŠ¨
+ * Copyright (c) 2026 t-r-r114
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 //
 // Define an Interface Guid so that apps can find the device and talk to it.
@@ -22,30 +22,30 @@ DEFINE_GUID(GUID_DEVINTERFACE_Writer,
     0x1facfca1, 0x9f67, 0x49e8, 0xa9, 0xa8, 0xbf, 0x86, 0xe9, 0x7d, 0x13, 0xa3);
 // {1facfca1-9f67-49e8-a9a8-bf86e97d13a3}
 
-// ¶¨Òå IOCTL ¿ØÖÆÂë
+// å®šä¹‰ IOCTL æ§åˆ¶ç 
 #define IOCTL_DISK_WRITE_COMMAND \
     CTL_CODE(FILE_DEVICE_UNKNOWN, 0x802, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
-// Ç¿ÖÆ 8 ×Ö½Ú¶ÔÆë£¬·ÀÖ¹ 32Î» EXE ºÍ 64Î» SYS Í¨ĞÅÊ±½á¹¹Ìå´íÎ»
+// å¼ºåˆ¶ 8 å­—èŠ‚å¯¹é½ï¼Œé˜²æ­¢ 32ä½ EXE å’Œ 64ä½ SYS é€šä¿¡æ—¶ç»“æ„ä½“é”™ä½
 #pragma pack(push, 8)
 typedef struct _DISK_WRITE_PARAMS {
-    ULONG     DiskNumber;      // ÎïÀí´ÅÅÌ±àºÅ (ÀıÈç 1 ´ú±í Disk 1)
-    ULONGLONG ByteOffset;      // Ğ´ÈëµÄÆğÊ¼Î»ÖÃ (±ØĞëÊÇÉÈÇø´óĞ¡ 512 »ò 4096 µÄ±¶Êı)
-    ULONG     WriteLength;     // Ğ´ÈëµÄÊı¾İ³¤¶È (ÓÉ App ¶¯Ì¬Ö¸¶¨)
-    UCHAR     Data[ANYSIZE_ARRAY]; // ±ä³¤Êı×éÕ¼Î»·û£¬½ÓÊÕ¶¯Ì¬³¤¶ÈÊı¾İ
+    ULONG     DiskNumber;      // ç‰©ç†ç£ç›˜ç¼–å· (ä¾‹å¦‚ 1 ä»£è¡¨ Disk 1)
+    ULONGLONG ByteOffset;      // å†™å…¥çš„èµ·å§‹ä½ç½® (å¿…é¡»æ˜¯æ‰‡åŒºå¤§å° 512 æˆ– 4096 çš„å€æ•°)
+    ULONG     WriteLength;     // å†™å…¥çš„æ•°æ®é•¿åº¦ (ç”± App åŠ¨æ€æŒ‡å®š)
+    UCHAR     Data[ANYSIZE_ARRAY]; // å˜é•¿æ•°ç»„å ä½ç¬¦ï¼Œæ¥æ”¶åŠ¨æ€é•¿åº¦æ•°æ®
 } DISK_WRITE_PARAMS, * PDISK_WRITE_PARAMS;
 #pragma pack(pop)
 
-// ¶¨Òå¶ÁÈ¡µÄ IOCTL ¿ØÖÆÂë
+// å®šä¹‰è¯»å–çš„ IOCTL æ§åˆ¶ç 
 #define IOCTL_DISK_READ_COMMAND \
     CTL_CODE(FILE_DEVICE_UNKNOWN, 0x803, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
-// ¶ÁÈ¡²ÎÊı½á¹¹Ìå (App ·¢ËÍ´Ë½á¹¹Ìå£¬Çı¶¯½«Êı¾İÌîÈë Data ²¢·µ»Ø)
+// è¯»å–å‚æ•°ç»“æ„ä½“ (App å‘é€æ­¤ç»“æ„ä½“ï¼Œé©±åŠ¨å°†æ•°æ®å¡«å…¥ Data å¹¶è¿”å›)
 #pragma pack(push, 8)
 typedef struct _DISK_READ_PARAMS {
-    ULONG     DiskNumber;      // ÎïÀí´ÅÅÌ±àºÅ
-    ULONGLONG ByteOffset;      // ¶ÁÈ¡µÄÆğÊ¼Î»ÖÃ
-    ULONG     ReadLength;      // ÆÚÍû¶ÁÈ¡µÄ³¤¶È
-    UCHAR     Data[ANYSIZE_ARRAY]; // ±ä³¤Êı×é£¬ÓÃÓÚÏòÓ¦ÓÃ²ã·µ»Ø¶ÁÈ¡µ½µÄÊı¾İ
+    ULONG     DiskNumber;      // ç‰©ç†ç£ç›˜ç¼–å·
+    ULONGLONG ByteOffset;      // è¯»å–çš„èµ·å§‹ä½ç½®
+    ULONG     ReadLength;      // æœŸæœ›è¯»å–çš„é•¿åº¦
+    UCHAR     Data[ANYSIZE_ARRAY]; // å˜é•¿æ•°ç»„ï¼Œç”¨äºå‘åº”ç”¨å±‚è¿”å›è¯»å–åˆ°çš„æ•°æ®
 } DISK_READ_PARAMS, * PDISK_READ_PARAMS;
 #pragma pack(pop)
