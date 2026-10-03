@@ -1,3 +1,20 @@
+/*
+ * DiskWRd - Windows ç£ç›˜è¯»å†™é©±åŠ¨
+ * Copyright (c) 2026 t-r-r114
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <ntddk.h>
 #include <wdf.h>
 #include <ntstrsafe.h>
@@ -22,14 +39,14 @@ DriverEntry(
     WDF_OBJECT_ATTRIBUTES attributes;
     WDFDRIVER hDriver;
 
-    // ³õÊ¼»¯ WPP ¸ú×Ù
+    // åˆå§‹åŒ– WPP è·Ÿè¸ª
     WPP_INIT_TRACING(DriverObject, RegistryPath);
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "%!FUNC! Entry");
 
     WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
     attributes.EvtCleanupCallback = WriterEvtDriverContextCleanup;
 
-    // 1. ºËĞÄĞŞ¸Ä£ºÉùÃ÷Îª·Ç PnP Çı¶¯£¬²»ĞèÒª EvtDeviceAdd
+    // 1. æ ¸å¿ƒä¿®æ”¹ï¼šå£°æ˜ä¸ºé PnP é©±åŠ¨ï¼Œä¸éœ€è¦ EvtDeviceAdd
     WDF_DRIVER_CONFIG_INIT(&config, WDF_NO_EVENT_CALLBACK);
     config.DriverInitFlags |= WdfDriverInitNonPnpDriver;
 
@@ -40,15 +57,15 @@ DriverEntry(
         return status;
     }
 
-    // 2. ·ÖÅä¿ØÖÆÉè±¸ (Control Device) ³õÊ¼»¯½á¹¹
-    // ¡¾°²È«ĞŞ¸´¡¿ÉèÖÃ°²È«ÃèÊö·û£ºSDDL_DEVOBJ_SYS_ALL_ADM_ALL 
-    // ³¹µ×½ûÖ¹ÆÕÍ¨ÓÃ»§·ÃÎÊ£¬½öÏŞÏµÍ³(SYSTEM)ºÍ¹ÜÀíÔ±(ADMINISTRATORS)½øĞĞ¶ÁĞ´
+    // 2. åˆ†é…æ§åˆ¶è®¾å¤‡ (Control Device) åˆå§‹åŒ–ç»“æ„
+    // ã€å®‰å…¨ä¿®å¤ã€‘è®¾ç½®å®‰å…¨æè¿°ç¬¦ï¼šSDDL_DEVOBJ_SYS_ALL_ADM_ALL 
+    // å½»åº•ç¦æ­¢æ™®é€šç”¨æˆ·è®¿é—®ï¼Œä»…é™ç³»ç»Ÿ(SYSTEM)å’Œç®¡ç†å‘˜(ADMINISTRATORS)è¿›è¡Œè¯»å†™
     PWDFDEVICE_INIT pInit = WdfControlDeviceInitAllocate(hDriver, &SDDL_DEVOBJ_SYS_ALL_ADM_ALL);
     if (pInit == NULL) {
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    // 3. ÎªÉè±¸·ÖÅäÄÚºËÃû×Ö
+    // 3. ä¸ºè®¾å¤‡åˆ†é…å†…æ ¸åå­—
     DECLARE_CONST_UNICODE_STRING(ntDeviceName, L"\\Device\\MyWriter");
     status = WdfDeviceInitAssignName(pInit, &ntDeviceName);
     if (!NT_SUCCESS(status)) {
@@ -56,7 +73,7 @@ DriverEntry(
         return status;
     }
 
-    // 4. ´´½¨Éè±¸¶ÔÏó
+    // 4. åˆ›å»ºè®¾å¤‡å¯¹è±¡
     WDFDEVICE hDevice;
     WDF_OBJECT_ATTRIBUTES deviceAttributes;
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&deviceAttributes, DEVICE_CONTEXT);
@@ -67,21 +84,21 @@ DriverEntry(
         return status;
     }
 
-    // 5. ´´½¨ DOS ·ûºÅÁ´½Ó£¨ÕâÕıÊÇ Qt ÖĞ CreateFileW("\\\\.\\MyWriter") Ñ°ÕÒµÄÃû×Ö£©
+    // 5. åˆ›å»º DOS ç¬¦å·é“¾æ¥ï¼ˆè¿™æ­£æ˜¯ Qt ä¸­ CreateFileW("\\\\.\\MyWriter") å¯»æ‰¾çš„åå­—ï¼‰
     DECLARE_CONST_UNICODE_STRING(symbolicLinkName, L"\\DosDevices\\MyWriter");
     status = WdfDeviceCreateSymbolicLink(hDevice, &symbolicLinkName);
     if (!NT_SUCCESS(status)) {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "CreateSymbolicLink failed %!STATUS!", status);
-        return status; // Èç¹ûÊ§°Ü£¬¿ò¼Ü»áÔÚĞ¶ÔØÊ±×Ô¶¯ÇåÀíÒÑ´´½¨µÄ hDevice
+        return status; // å¦‚æœå¤±è´¥ï¼Œæ¡†æ¶ä¼šåœ¨å¸è½½æ—¶è‡ªåŠ¨æ¸…ç†å·²åˆ›å»ºçš„ hDevice
     }
 
-    // 6. ³õÊ¼»¯ IO ¶ÓÁĞ£¨´¦ÀíÀ´×Ô R3 µÄ IOCTL ÇëÇó£©
+    // 6. åˆå§‹åŒ– IO é˜Ÿåˆ—ï¼ˆå¤„ç†æ¥è‡ª R3 çš„ IOCTL è¯·æ±‚ï¼‰
     status = WriterQueueInitialize(hDevice);
     if (!NT_SUCCESS(status)) {
         return status;
     }
 
-    // 7. ±ØĞëµ÷ÓÃ£ºÍê³É¿ØÖÆÉè±¸µÄ³õÊ¼»¯
+    // 7. å¿…é¡»è°ƒç”¨ï¼šå®Œæˆæ§åˆ¶è®¾å¤‡çš„åˆå§‹åŒ–
     WdfControlFinishInitializing(hDevice);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "%!FUNC! Exit Success");
