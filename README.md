@@ -1,2 +1,2 @@
 # DiskWRd
-Windows-based low-level write driver
+Windows-based low-level read/write driver
