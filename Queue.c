@@ -1,20 +1,20 @@
-/*++
+/*
+ * DiskWRd - Windows ç£ç›˜è¯»å†™é©±åŠ¨
+ * Copyright (c) 2026 t-r-r114
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-Module Name:
-
-    queue.c
-
-Abstract:
-
-    This file contains the queue entry points and callbacks.
-    Fixed version: Safely manually constructs WDM IRPs without triggering BSOD.
-    Added detailed DbgPrint logging for execution tracking.
-
-Environment:
-
-    Kernel-mode Driver Framework
-
---*/
 #define POOL_TAG_NAME 'emaN'
 #include <ntddk.h>
 #include <wdf.h>
@@ -45,7 +45,7 @@ EXTERN_C_END
 #pragma alloc_text (PAGE, WriterQueueInitialize)
 #endif
 
-//¸¨Öúº¯Êı£¬Ñ°ÕÒÕ»ÖĞÄ³¸öÌØ¶¨Çı¶¯³ÌĞò¶ÔÓ¦µÄÉè±¸¶ÔÏó£¬·µ»ØÊ±±£³ÖÒıÓÃ¼ÆÊı£¬µ÷ÓÃÕß¸ºÔğÊÍ·Å
+//è¾…åŠ©å‡½æ•°ï¼Œå¯»æ‰¾æ ˆä¸­æŸä¸ªç‰¹å®šé©±åŠ¨ç¨‹åºå¯¹åº”çš„è®¾å¤‡å¯¹è±¡ï¼Œè¿”å›æ—¶ä¿æŒå¼•ç”¨è®¡æ•°ï¼Œè°ƒç”¨è€…è´Ÿè´£é‡Šæ”¾
 PDEVICE_OBJECT
 FindLowerDeviceByDriverName(
     _In_ PDEVICE_OBJECT TopDeviceObject,
@@ -58,22 +58,22 @@ FindLowerDeviceByDriverName(
 
     DbgPrint("[MBR_Debug] ---> FindLowerDeviceByDriverName Enter. TopDeviceObject: 0x%p, TargetDriverName: %wZ\n", TopDeviceObject, TargetDriverName);
 
-    // ÎªÁËÔÚÑ­»·ÖĞ°²È«µØ Dereference£¬ÎÒÃÇÏÈ¸øÆğµãÔö¼ÓÒ»´ÎÒıÓÃ¼ÆÊı
+    // ä¸ºäº†åœ¨å¾ªç¯ä¸­å®‰å…¨åœ° Dereferenceï¼Œæˆ‘ä»¬å…ˆç»™èµ·ç‚¹å¢åŠ ä¸€æ¬¡å¼•ç”¨è®¡æ•°
     ObReferenceObject(currentDevice);
 
     while (currentDevice != NULL) {
 
-        // ¼ì²éµ±Ç°Éè±¸¶ÔÏóËùÊôµÄÇı¶¯³ÌĞò
+        // æ£€æŸ¥å½“å‰è®¾å¤‡å¯¹è±¡æ‰€å±çš„é©±åŠ¨ç¨‹åº
         if (currentDevice->DriverObject != NULL) {
             ULONG returnLength = 0;
             ULONG bufferSize = 512;
 
-            // ·ÖÅäÄÚ´æÀ´»ñÈ¡¶ÔÏóÃû³Æ
+            // åˆ†é…å†…å­˜æ¥è·å–å¯¹è±¡åç§°
             POBJECT_NAME_INFORMATION nameInfo = (POBJECT_NAME_INFORMATION)
                 ExAllocatePoolWithTag(NonPagedPool, bufferSize, POOL_TAG_NAME);
 
             if (nameInfo != NULL) {
-                // ²éÑ¯Çı¶¯¶ÔÏóµÄÃû×Ö
+                // æŸ¥è¯¢é©±åŠ¨å¯¹è±¡çš„åå­—
                 NTSTATUS status = ObQueryNameString(
                     currentDevice->DriverObject,
                     nameInfo,
@@ -82,47 +82,47 @@ FindLowerDeviceByDriverName(
                 );
 
                 if (NT_SUCCESS(status) && nameInfo->Name.Buffer != NULL) {
-                    DbgPrint("[MBR_Debug] ÕıÔÚ¼ì²éÉè±¸(0x%p)ËùÊôÇı¶¯: %wZ\n", currentDevice, &nameInfo->Name);
-                    // ´òÓ¡µ±Ç°Éè±¸ËùÊôÇı¶¯µÄÃû×Ö£¬°ïÖúµ÷ÊÔºÍÑéÖ¤
-                    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE, "ÕıÔÚ¼ì²éÉè±¸ËùÊôÇı¶¯: %wZ", &nameInfo->Name);
+                    DbgPrint("[MBR_Debug] æ­£åœ¨æ£€æŸ¥è®¾å¤‡(0x%p)æ‰€å±é©±åŠ¨: %wZ\n", currentDevice, &nameInfo->Name);
+                    // æ‰“å°å½“å‰è®¾å¤‡æ‰€å±é©±åŠ¨çš„åå­—ï¼Œå¸®åŠ©è°ƒè¯•å’ŒéªŒè¯
+                    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE, "æ­£åœ¨æ£€æŸ¥è®¾å¤‡æ‰€å±é©±åŠ¨: %wZ", &nameInfo->Name);
 
-                    // ±È½ÏÇı¶¯ÃûÊÇ·ñÊÇÎÒÃÇÑ°ÕÒµÄÄ¿±ê (ÀıÈç L"\\Driver\\Disk")
+                    // æ¯”è¾ƒé©±åŠ¨åæ˜¯å¦æ˜¯æˆ‘ä»¬å¯»æ‰¾çš„ç›®æ ‡ (ä¾‹å¦‚ L"\\Driver\\Disk")
                     if (RtlCompareUnicodeString(&nameInfo->Name, TargetDriverName, TRUE) == 0) {
-                        DbgPrint("[MBR_Debug] ³É¹¦Æ¥ÅäÄ¿±êÇı¶¯Ãû! Ä¿±êÉè±¸¶ÔÏó: 0x%p\n", currentDevice);
-                        targetDevice = currentDevice; // ÕÒµ½ÁË£¡±£ÁôËüµÄÒıÓÃ¼ÆÊı
+                        DbgPrint("[MBR_Debug] æˆåŠŸåŒ¹é…ç›®æ ‡é©±åŠ¨å! ç›®æ ‡è®¾å¤‡å¯¹è±¡: 0x%p\n", currentDevice);
+                        targetDevice = currentDevice; // æ‰¾åˆ°äº†ï¼ä¿ç•™å®ƒçš„å¼•ç”¨è®¡æ•°
                         ExFreePoolWithTag(nameInfo, POOL_TAG_NAME);
                         break;
                     }
                 }
                 else {
-                    DbgPrint("[MBR_Debug] ObQueryNameString Ê§°Ü»òÎŞ·µ»ØÃû³Æ, ×´Ì¬Âë: 0x%08X\n", status);
+                    DbgPrint("[MBR_Debug] ObQueryNameString å¤±è´¥æˆ–æ— è¿”å›åç§°, çŠ¶æ€ç : 0x%08X\n", status);
                 }
                 ExFreePoolWithTag(nameInfo, POOL_TAG_NAME);
             }
             else {
-				DbgPrint("[MBR_Debug] ÄÚ´æ·ÖÅäÊ§°Ü£¬ÎŞ·¨»ñÈ¡¶ÔÏóÃû³Æ! ÇëÇó´óĞ¡: %lu ×Ö½Ú\n", bufferSize);
+				DbgPrint("[MBR_Debug] å†…å­˜åˆ†é…å¤±è´¥ï¼Œæ— æ³•è·å–å¯¹è±¡åç§°! è¯·æ±‚å¤§å°: %lu å­—èŠ‚\n", bufferSize);
             }
         }
 
-        // »ñÈ¡Õ»ÖĞµÄÏÂÒ»¸öµ×²ãÉè±¸¶ÔÏó
+        // è·å–æ ˆä¸­çš„ä¸‹ä¸€ä¸ªåº•å±‚è®¾å¤‡å¯¹è±¡
         lowerDevice = IoGetLowerDeviceObject(currentDevice);
-        DbgPrint("[MBR_Debug] »ñÈ¡ÏÂ²ãÉè±¸¶ÔÏó: 0x%p\n", lowerDevice);
+        DbgPrint("[MBR_Debug] è·å–ä¸‹å±‚è®¾å¤‡å¯¹è±¡: 0x%p\n", lowerDevice);
 
-        // ÊÍ·Å¶Ôµ±Ç°Éè±¸µÄÒıÓÃ
+        // é‡Šæ”¾å¯¹å½“å‰è®¾å¤‡çš„å¼•ç”¨
         ObDereferenceObject(currentDevice);
 
-        // ¼ÌĞøÏòÏÂ²ã¼ì²é
+        // ç»§ç»­å‘ä¸‹å±‚æ£€æŸ¥
         currentDevice = lowerDevice;
     }
 
-    DbgPrint("[MBR_Debug] <--- FindLowerDeviceByDriverName Exit. ·µ»ØÄ¿±êÉè±¸¶ÔÏó: 0x%p\n", targetDevice);
-    // ×¢Òâ£ºÈç¹ûÕÒµ½ÁË targetDevice£¬µ÷ÓÃÕßÊ¹ÓÃÍê±Ïºó±ØĞë¶ÔÆäµ÷ÓÃ ObDereferenceObject
+    DbgPrint("[MBR_Debug] <--- FindLowerDeviceByDriverName Exit. è¿”å›ç›®æ ‡è®¾å¤‡å¯¹è±¡: 0x%p\n", targetDevice);
+    // æ³¨æ„ï¼šå¦‚æœæ‰¾åˆ°äº† targetDeviceï¼Œè°ƒç”¨è€…ä½¿ç”¨å®Œæ¯•åå¿…é¡»å¯¹å…¶è°ƒç”¨ ObDereferenceObject
     return targetDevice;
 }
 
 //
-// 1. ¶¨ÒåÊÖ¶¯ IRP µÄÉÏÏÂÎÄ½á¹¹
-// ÓÃÓÚÔÚÍê³ÉÀı³ÌºÍÖ÷ÅÉ·¢Ïß³ÌÖ®¼ä´«µİ×´Ì¬ºÍÍ¬²½ÊÂ¼ş
+// 1. å®šä¹‰æ‰‹åŠ¨ IRP çš„ä¸Šä¸‹æ–‡ç»“æ„
+// ç”¨äºåœ¨å®Œæˆä¾‹ç¨‹å’Œä¸»æ´¾å‘çº¿ç¨‹ä¹‹é—´ä¼ é€’çŠ¶æ€å’ŒåŒæ­¥äº‹ä»¶
 //
 typedef struct _MANUAL_IRP_CONTEXT {
     KEVENT Event;
@@ -131,8 +131,8 @@ typedef struct _MANUAL_IRP_CONTEXT {
 
 
 //
-// 2. ¶¨ÒåÊÖ¶¯ IRP µÄÍê³ÉÀı³Ì
-// ±ØĞëÇåÀíÊÖ¶¯·ÖÅäµÄ×ÊÔ´£¬·ÀÖ¹ÄÚ´æĞ¹Â©
+// 2. å®šä¹‰æ‰‹åŠ¨ IRP çš„å®Œæˆä¾‹ç¨‹
+// å¿…é¡»æ¸…ç†æ‰‹åŠ¨åˆ†é…çš„èµ„æºï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
 //
 IO_COMPLETION_ROUTINE WriterManualIrpCompletionRoutine;
 NTSTATUS
@@ -145,13 +145,13 @@ WriterManualIrpCompletionRoutine(
     UNREFERENCED_PARAMETER(DeviceObject);
     PMANUAL_IRP_CONTEXT irpContext = (PMANUAL_IRP_CONTEXT)Context;
 
-    DbgPrint("[MBR_Debug] ---> WriterManualIrpCompletionRoutine ±»µ÷ÓÃ. IRP: 0x%p, ·µ»Ø×´Ì¬: 0x%08X\n", Irp, Irp->IoStatus.Status);
+    DbgPrint("[MBR_Debug] ---> WriterManualIrpCompletionRoutine è¢«è°ƒç”¨. IRP: 0x%p, è¿”å›çŠ¶æ€: 0x%08X\n", Irp, Irp->IoStatus.Status);
 
     irpContext->Status = Irp->IoStatus.Status;
 
     KeSetEvent(&irpContext->Event, IO_NO_INCREMENT, FALSE);
 
-    DbgPrint("[MBR_Debug] <--- WriterManualIrpCompletionRoutine Exit. ÒÑÉèÖÃÊÂ¼ş£¬Í¨ÖªÖ÷Ïß³Ì¼ÌĞø´¦Àí.\n", "DiskWRd");
+    DbgPrint("[MBR_Debug] <--- WriterManualIrpCompletionRoutine Exit. å·²è®¾ç½®äº‹ä»¶ï¼Œé€šçŸ¥ä¸»çº¿ç¨‹ç»§ç»­å¤„ç†.\n", "DiskWRd");
     return STATUS_MORE_PROCESSING_REQUIRED;
 }
 
@@ -185,16 +185,16 @@ WriterQueueInitialize(
     );
 
     if (!NT_SUCCESS(status)) {
-        DbgPrint("[MBR_Debug] ´íÎó: WdfIoQueueCreate Ê§°Ü! ×´Ì¬Âë: 0x%08X\n", status);
+        DbgPrint("[MBR_Debug] é”™è¯¯: WdfIoQueueCreate å¤±è´¥! çŠ¶æ€ç : 0x%08X\n", status);
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "WdfIoQueueCreate failed %!STATUS!", status);
         return status;
     }
 
-    DbgPrint("[MBR_Debug] <--- WriterQueueInitialize Exit. Queue´´½¨³É¹¦: 0x%p\n", queue);
+    DbgPrint("[MBR_Debug] <--- WriterQueueInitialize Exit. Queueåˆ›å»ºæˆåŠŸ: 0x%p\n", queue);
     return status;
 }
 
-// 3. ´¦Àí IOCTL_DISK_WRITE_COMMAND µÄºËĞÄº¯Êı
+// 3. å¤„ç† IOCTL_DISK_WRITE_COMMAND çš„æ ¸å¿ƒå‡½æ•°
 VOID
 WriterEvtIoDeviceControl(
     _In_ WDFQUEUE Queue,
@@ -209,7 +209,7 @@ WriterEvtIoDeviceControl(
     size_t length = 0;
 
     DbgPrint("[MBR_Debug] ---> WriterEvtIoDeviceControl Enter. Queue: 0x%p, Request: 0x%p, IoControlCode: 0x%08X\n", Queue, Request, IoControlCode);
-    DbgPrint("[MBR_Debug] ÊäÈë»º³å³¤¶È: %Iu, Êä³ö»º³å³¤¶È: %Iu\n", InputBufferLength, OutputBufferLength);
+    DbgPrint("[MBR_Debug] è¾“å…¥ç¼“å†²é•¿åº¦: %Iu, è¾“å‡ºç¼“å†²é•¿åº¦: %Iu\n", InputBufferLength, OutputBufferLength);
 
     TraceEvents(TRACE_LEVEL_INFORMATION,
         TRACE_QUEUE,
@@ -218,24 +218,24 @@ WriterEvtIoDeviceControl(
 
     if (IoControlCode == IOCTL_DISK_WRITE_COMMAND) {
 
-		DbgPrint("[MBR_Debug] ÊÕµ½ IOCTL_DISK_WRITE_COMMAND ¿ØÖÆÂë£¬×¼±¸´¦ÀíĞ´ÈëÇëÇó...\n", "DiskWRd");
+		DbgPrint("[MBR_Debug] æ”¶åˆ° IOCTL_DISK_WRITE_COMMAND æ§åˆ¶ç ï¼Œå‡†å¤‡å¤„ç†å†™å…¥è¯·æ±‚...\n", "DiskWRd");
 
-        // »ñÈ¡½á¹¹Ìå¹Ì¶¨Í·²¿µÄ´óĞ¡ (²»°üº¬±ä³¤Êı×é²¿·Ö)
+        // è·å–ç»“æ„ä½“å›ºå®šå¤´éƒ¨çš„å¤§å° (ä¸åŒ…å«å˜é•¿æ•°ç»„éƒ¨åˆ†)
         size_t minRequiredSize = FIELD_OFFSET(DISK_WRITE_PARAMS, Data);
 
-        // ÒÔ×îĞ¡ËùĞè´óĞ¡»ñÈ¡ÊäÈë»º³åÇø
+        // ä»¥æœ€å°æ‰€éœ€å¤§å°è·å–è¾“å…¥ç¼“å†²åŒº
         status = WdfRequestRetrieveInputBuffer(Request, minRequiredSize, (PVOID*)&params, &length);
-        DbgPrint("[MBR_Debug] WdfRequestRetrieveInputBuffer ×´Ì¬: 0x%08X, »ñÈ¡µ½µÄ³¤¶È: %Iu\n", status, length);
+        DbgPrint("[MBR_Debug] WdfRequestRetrieveInputBuffer çŠ¶æ€: 0x%08X, è·å–åˆ°çš„é•¿åº¦: %Iu\n", status, length);
 
         if (NT_SUCCESS(status) && params != NULL) {
 
-            DbgPrint("[MBR_Debug] ½âÎö²ÎÊı -> DiskNumber: %u, ByteOffset: 0x%llX, WriteLength: %u\n",
+            DbgPrint("[MBR_Debug] è§£æå‚æ•° -> DiskNumber: %u, ByteOffset: 0x%llX, WriteLength: %u\n",
                 params->DiskNumber, params->ByteOffset, params->WriteLength);
 
-            // °²È«Ğ£Ñé£ºÈ·±£ R3 ´«À´µÄ×ÜÄÚ´æ´óĞ¡ >= (Í·²¿´óĞ¡ + ÉùÃ÷ÒªĞ´ÈëµÄ³¤¶È)
+            // å®‰å…¨æ ¡éªŒï¼šç¡®ä¿ R3 ä¼ æ¥çš„æ€»å†…å­˜å¤§å° >= (å¤´éƒ¨å¤§å° + å£°æ˜è¦å†™å…¥çš„é•¿åº¦)
             if (length < minRequiredSize || params->WriteLength >(length - minRequiredSize)) {
-                DbgPrint("[MBR_Debug] ÑÏÖØ´íÎó: ÊäÈë»º³åÇøÌ«Ğ¡»ò·¢ÉúÕûÊıÒç³ö! minRequiredSize: %Iu\n", minRequiredSize);
-                TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "ÊäÈë»º³åÇøÌ«Ğ¡»ò·¢ÉúÕûÊıÒç³ö!");
+                DbgPrint("[MBR_Debug] ä¸¥é‡é”™è¯¯: è¾“å…¥ç¼“å†²åŒºå¤ªå°æˆ–å‘ç”Ÿæ•´æ•°æº¢å‡º! minRequiredSize: %Iu\n", minRequiredSize);
+                TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "è¾“å…¥ç¼“å†²åŒºå¤ªå°æˆ–å‘ç”Ÿæ•´æ•°æº¢å‡º!");
                 WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
                 return;
             }
@@ -246,67 +246,67 @@ WriterEvtIoDeviceControl(
             PDEVICE_OBJECT deviceObject = NULL;
 
             TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE,
-                "ÊÕµ½Ğ´ÈëÖ¸Áî(´¿ÊÖ¶¯IRPÄ£Ê½)! DiskNumber: %d, Offset: 0x%llX, Length: %d",
+                "æ”¶åˆ°å†™å…¥æŒ‡ä»¤(çº¯æ‰‹åŠ¨IRPæ¨¡å¼)! DiskNumber: %d, Offset: 0x%llX, Length: %d",
                 params->DiskNumber, params->ByteOffset, params->WriteLength);
 
-            // ¸ñÊ½»¯ÎïÀí´ÅÅÌÉè±¸Â·¾¶
+            // æ ¼å¼åŒ–ç‰©ç†ç£ç›˜è®¾å¤‡è·¯å¾„
             RtlStringCbPrintfW(diskNameBuffer, sizeof(diskNameBuffer), L"\\Device\\Harddisk%lu\\Partition0", params->DiskNumber);
             RtlInitUnicodeString(&diskName, diskNameBuffer);
-            DbgPrint("[MBR_Debug] ¸ñÊ½»¯Ä¿±êÉè±¸Â·¾¶: %wZ\n", &diskName);
+            DbgPrint("[MBR_Debug] æ ¼å¼åŒ–ç›®æ ‡è®¾å¤‡è·¯å¾„: %wZ\n", &diskName);
 
-            // »ñÈ¡µ×²ãÉè±¸¶ÔÏóºÍÎÄ¼ş¶ÔÏó£¨´ËÊ±»ñÈ¡µÄÊÇ¶¥²ãÉè±¸¶ÔÏó£¬ÎÒÃÇºóĞø»áÔÚÕ»ÖĞÑ°ÕÒÕæÕıµÄ´ÅÅÌÇı¶¯Éè±¸¶ÔÏó£©
+            // è·å–åº•å±‚è®¾å¤‡å¯¹è±¡å’Œæ–‡ä»¶å¯¹è±¡ï¼ˆæ­¤æ—¶è·å–çš„æ˜¯é¡¶å±‚è®¾å¤‡å¯¹è±¡ï¼Œæˆ‘ä»¬åç»­ä¼šåœ¨æ ˆä¸­å¯»æ‰¾çœŸæ­£çš„ç£ç›˜é©±åŠ¨è®¾å¤‡å¯¹è±¡ï¼‰
             status = IoGetDeviceObjectPointer(
                 &diskName,
                 FILE_WRITE_DATA,
                 &fileObject,
                 &deviceObject
             );
-            DbgPrint("[MBR_Debug] IoGetDeviceObjectPointer ×´Ì¬: 0x%08X. FileObject: 0x%p, DeviceObject: 0x%p\n", status, fileObject, deviceObject);
+            DbgPrint("[MBR_Debug] IoGetDeviceObjectPointer çŠ¶æ€: 0x%08X. FileObject: 0x%p, DeviceObject: 0x%p\n", status, fileObject, deviceObject);
 
             if (NT_SUCCESS(status)) {
                 PDEVICE_OBJECT targetDiskDevice = NULL;
 
-                DbgPrint("[MBR_Debug] fileObject->DeviceObject Ö¸ÏòÎïÀíÊµÌå: 0x%p\n", fileObject->DeviceObject);
+                DbgPrint("[MBR_Debug] fileObject->DeviceObject æŒ‡å‘ç‰©ç†å®ä½“: 0x%p\n", fileObject->DeviceObject);
 
-                // fileObject->DeviceObject Ö¸ÏòÕæÊµµÄÎïÀí´ÅÅÌÉè±¸£¨±» RAW ÎÄ¼şÏµÍ³¹ÒÔØµÄÄÇ¸öµ×²ãÊµÌå£©
-                // IoGetAttachedDeviceReference »ñÈ¡¸ÃÎïÀí´ÅÅÌËùÔÚ¡°´æ´¢Õ»¡±µÄ¶¥²ã¶ÔÏó
+                // fileObject->DeviceObject æŒ‡å‘çœŸå®çš„ç‰©ç†ç£ç›˜è®¾å¤‡ï¼ˆè¢« RAW æ–‡ä»¶ç³»ç»ŸæŒ‚è½½çš„é‚£ä¸ªåº•å±‚å®ä½“ï¼‰
+                // IoGetAttachedDeviceReference è·å–è¯¥ç‰©ç†ç£ç›˜æ‰€åœ¨â€œå­˜å‚¨æ ˆâ€çš„é¡¶å±‚å¯¹è±¡
                 PDEVICE_OBJECT storageStackTop = IoGetAttachedDeviceReference(fileObject->DeviceObject);
-                DbgPrint("[MBR_Debug] ´æ´¢Õ»¶¥²ã¶ÔÏó (storageStackTop): 0x%p\n", storageStackTop);
+                DbgPrint("[MBR_Debug] å­˜å‚¨æ ˆé¡¶å±‚å¯¹è±¡ (storageStackTop): 0x%p\n", storageStackTop);
 
-                // ÓÅÏÈ¼¶ 1£º³¢ÊÔÑ°ÕÒ \Driver\Disk (ÈÆ¹ıÉÏ²ã¹ıÂË)
+                // ä¼˜å…ˆçº§ 1ï¼šå°è¯•å¯»æ‰¾ \Driver\Disk (ç»•è¿‡ä¸Šå±‚è¿‡æ»¤)
                 UNICODE_STRING targetName = RTL_CONSTANT_STRING(L"\\Driver\\Disk");
-                DbgPrint("[MBR_Debug] ÓÅÏÈÔÚ´æ´¢Õ»ÖĞÑ°ÕÒ \\Driver\\Disk...\n", "DiskWRd");
+                DbgPrint("[MBR_Debug] ä¼˜å…ˆåœ¨å­˜å‚¨æ ˆä¸­å¯»æ‰¾ \\Driver\\Disk...\n", "DiskWRd");
                 targetDiskDevice = FindLowerDeviceByDriverName(storageStackTop, &targetName);
 
                 if (targetDiskDevice != NULL) {
-                    DbgPrint("[MBR_Debug] ³É¹¦ÃüÖĞºËĞÄ´ÅÅÌÇı¶¯ \\Driver\\Disk!\n", "DiskWRd");
-					TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE, "³É¹¦ÕÒµ½ \\Driver\\Disk ÀàÇı¶¯Éè±¸: 0x%p", targetDiskDevice);
+                    DbgPrint("[MBR_Debug] æˆåŠŸå‘½ä¸­æ ¸å¿ƒç£ç›˜é©±åŠ¨ \\Driver\\Disk!\n", "DiskWRd");
+					TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE, "æˆåŠŸæ‰¾åˆ° \\Driver\\Disk ç±»é©±åŠ¨è®¾å¤‡: 0x%p", targetDiskDevice);
                 }
                 else {
-					DbgPrint("[MBR_Debug] Ã»ÕÒµ½ \\Driver\\Disk£¬³¢ÊÔÑ°ÕÒ \\Driver\\partmgr...\n", "DiskWRd");
-                    // ÓÅÏÈ¼¶ 2£ºÈç¹ûÃ»ÕÒµ½ Disk£¬½µ¼¶Ñ°ÕÒ \Driver\partmgr
+					DbgPrint("[MBR_Debug] æ²¡æ‰¾åˆ° \\Driver\\Diskï¼Œå°è¯•å¯»æ‰¾ \\Driver\\partmgr...\n", "DiskWRd");
+                    // ä¼˜å…ˆçº§ 2ï¼šå¦‚æœæ²¡æ‰¾åˆ° Diskï¼Œé™çº§å¯»æ‰¾ \Driver\partmgr
                     RtlInitUnicodeString(&targetName, L"\\Driver\\partmgr");
                     targetDiskDevice = FindLowerDeviceByDriverName(storageStackTop, &targetName);
 
                     if (targetDiskDevice != NULL) {
-						DbgPrint("[MBR_Debug] Ã»ÕÒµ½ \\Driver\\Disk£¬µ«ÕÒµ½ÁË \\Driver\\partmgr£¬¼ÌĞøÊ¹ÓÃËü½øĞĞĞ´Èë²Ù×÷£¨¿ÉÄÜ»á±» partmgr À¹½Ø£©\n");
-						TraceEvents(TRACE_LEVEL_WARNING, TRACE_QUEUE, "Ã»ÕÒµ½ \\Driver\\Disk£¬µ«ÕÒµ½ÁË \\Driver\\partmgr£¬¼ÌĞøÊ¹ÓÃËü½øĞĞĞ´Èë²Ù×÷£¨¿ÉÄÜ»á±» partmgr À¹½Ø£©");
+						DbgPrint("[MBR_Debug] æ²¡æ‰¾åˆ° \\Driver\\Diskï¼Œä½†æ‰¾åˆ°äº† \\Driver\\partmgrï¼Œç»§ç»­ä½¿ç”¨å®ƒè¿›è¡Œå†™å…¥æ“ä½œï¼ˆå¯èƒ½ä¼šè¢« partmgr æ‹¦æˆªï¼‰\n");
+						TraceEvents(TRACE_LEVEL_WARNING, TRACE_QUEUE, "æ²¡æ‰¾åˆ° \\Driver\\Diskï¼Œä½†æ‰¾åˆ°äº† \\Driver\\partmgrï¼Œç»§ç»­ä½¿ç”¨å®ƒè¿›è¡Œå†™å…¥æ“ä½œï¼ˆå¯èƒ½ä¼šè¢« partmgr æ‹¦æˆªï¼‰");
                     }
                 }
 
-                // ÎŞÂÛ³É¹¦Óë·ñ£¬ÏÈÊÍ·ÅÎÒÃÇ¶Ô´æ´¢Õ»¶¥²ãÉè±¸µÄÒıÓÃ£¬ÒòÎªÎÒÃÇºóĞø»á¸ù¾İÕÒµ½µÄÉè±¸¶ÔÏó¼ÌĞø²Ù×÷
+                // æ— è®ºæˆåŠŸä¸å¦ï¼Œå…ˆé‡Šæ”¾æˆ‘ä»¬å¯¹å­˜å‚¨æ ˆé¡¶å±‚è®¾å¤‡çš„å¼•ç”¨ï¼Œå› ä¸ºæˆ‘ä»¬åç»­ä¼šæ ¹æ®æ‰¾åˆ°çš„è®¾å¤‡å¯¹è±¡ç»§ç»­æ“ä½œ
                 ObDereferenceObject(storageStackTop);
 
-                // Èç¹ûÁ½¸ö¶¼Ã»ÓĞÕÒµ½£¬¼ÇÂ¼´íÎó²¢ÍË³ö£¬ÒòÎªÃ»ÓĞµ×²ãÉè±¸ÎÒÃÇÎŞ·¨¼ÌĞø¹¹Ôì IRP ÁË
+                // å¦‚æœä¸¤ä¸ªéƒ½æ²¡æœ‰æ‰¾åˆ°ï¼Œè®°å½•é”™è¯¯å¹¶é€€å‡ºï¼Œå› ä¸ºæ²¡æœ‰åº•å±‚è®¾å¤‡æˆ‘ä»¬æ— æ³•ç»§ç»­æ„é€  IRP äº†
                 if (targetDiskDevice == NULL) {
-                    DbgPrint("[MBR_Debug] ÑÏÖØ´íÎó£ºÃ»ÕÒµ½ partmgr£¬Ò²Ã»ÕÒµ½ Disk£¡ÖĞÖ¹²Ù×÷¡£\n", "DiskWRd");
-                    TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "Î´ÄÜÕÒµ½ \\Driver\\Disk Ô­ÉúÉè±¸£¡");
+                    DbgPrint("[MBR_Debug] ä¸¥é‡é”™è¯¯ï¼šæ²¡æ‰¾åˆ° partmgrï¼Œä¹Ÿæ²¡æ‰¾åˆ° Diskï¼ä¸­æ­¢æ“ä½œã€‚\n", "DiskWRd");
+                    TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "æœªèƒ½æ‰¾åˆ° \\Driver\\Disk åŸç”Ÿè®¾å¤‡ï¼");
                     ObDereferenceObject(fileObject);
                     WdfRequestComplete(Request, STATUS_NOT_FOUND);
                     return;
                 }
 
-                TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE, "³É¹¦ÕÒµ½µ×²ãÔ­Éú Disk Éè±¸¶ÔÏó: 0x%p", targetDiskDevice);
+                TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE, "æˆåŠŸæ‰¾åˆ°åº•å±‚åŸç”Ÿ Disk è®¾å¤‡å¯¹è±¡: 0x%p", targetDiskDevice);
 
                 MANUAL_IRP_CONTEXT irpContext;
                 KeInitializeEvent(&irpContext.Event, NotificationEvent, FALSE);
@@ -315,159 +315,159 @@ WriterEvtIoDeviceControl(
                 LARGE_INTEGER startingOffset;
                 startingOffset.QuadPart = params->ByteOffset;
 
-                // 3. ÊÖ¶¯·ÖÅä¿Õ°× IRP
-                DbgPrint("[MBR_Debug] ¿ªÊ¼ÊÖ¶¯·ÖÅä IRP£¬StackSize: %d\n", targetDiskDevice->StackSize);
+                // 3. æ‰‹åŠ¨åˆ†é…ç©ºç™½ IRP
+                DbgPrint("[MBR_Debug] å¼€å§‹æ‰‹åŠ¨åˆ†é… IRPï¼ŒStackSize: %d\n", targetDiskDevice->StackSize);
                 PIRP irp = IoAllocateIrp(targetDiskDevice->StackSize, FALSE);
 
                 if (irp != NULL) {
-                    DbgPrint("[MBR_Debug] IoAllocateIrp ³É¹¦£¬IRPµØÖ·: 0x%p\n", irp);
+                    DbgPrint("[MBR_Debug] IoAllocateIrp æˆåŠŸï¼ŒIRPåœ°å€: 0x%p\n", irp);
 
-                    // 4. Îª WDF Ìá¹©µÄÄÚºË»º³åÇø·ÖÅä MDL
+                    // 4. ä¸º WDF æä¾›çš„å†…æ ¸ç¼“å†²åŒºåˆ†é… MDL
                     PMDL mdl = IoAllocateMdl(params->Data, params->WriteLength, FALSE, FALSE, irp);
 
                     if (mdl != NULL) {
-                        DbgPrint("[MBR_Debug] IoAllocateMdl ³É¹¦£¬MDLµØÖ·: 0x%p\n", mdl);
+                        DbgPrint("[MBR_Debug] IoAllocateMdl æˆåŠŸï¼ŒMDLåœ°å€: 0x%p\n", mdl);
 
-                        // 5. ¸æÖªÏµÍ³´ËÄÚ´æÒÑÔÚÄÚºË·Ç·ÖÒ³³ØÖĞ£¬ÎŞĞèËø¶¨ÓëÌ½Õë£¡
+                        // 5. å‘ŠçŸ¥ç³»ç»Ÿæ­¤å†…å­˜å·²åœ¨å†…æ ¸éåˆ†é¡µæ± ä¸­ï¼Œæ— éœ€é”å®šä¸æ¢é’ˆï¼
                         MmBuildMdlForNonPagedPool(mdl);
-                        DbgPrint("[MBR_Debug] MmBuildMdlForNonPagedPool Ö´ĞĞÍê±Ï\n");
+                        DbgPrint("[MBR_Debug] MmBuildMdlForNonPagedPool æ‰§è¡Œå®Œæ¯•\n");
 
-                        // 6. Ìî³äÏÂ²ãÇı¶¯µÄ IRP Õ»²ÎÊı
+                        // 6. å¡«å……ä¸‹å±‚é©±åŠ¨çš„ IRP æ ˆå‚æ•°
                         PIO_STACK_LOCATION nextStack = IoGetNextIrpStackLocation(irp);
                         nextStack->MajorFunction = IRP_MJ_WRITE;
                         nextStack->Parameters.Write.Length = params->WriteLength;
                         nextStack->Parameters.Write.ByteOffset = startingOffset;
 
-                        DbgPrint("[MBR_Debug] IRP Õ»²ÎÊıÉèÖÃÍê±Ï -> MajorFunction: IRP_MJ_WRITE, Offset: 0x%llX, Length: %u\n",
+                        DbgPrint("[MBR_Debug] IRP æ ˆå‚æ•°è®¾ç½®å®Œæ¯• -> MajorFunction: IRP_MJ_WRITE, Offset: 0x%llX, Length: %u\n",
                             startingOffset.QuadPart, params->WriteLength);
 
-                        // ¡¾ĞÂÔöµÄ·´À¹½ØÄ§·¨£ºÇ¿ÖÆÎïÀíÈÆ¹ı¡¿
+                        // ã€æ–°å¢çš„åæ‹¦æˆªé­”æ³•ï¼šå¼ºåˆ¶ç‰©ç†ç»•è¿‡ã€‘
                         #ifndef SL_FORCE_DIRECT_WRITE
                         #define SL_FORCE_DIRECT_WRITE 0x20
                         #endif
 
-                        // 1. ÈÆ¹ı partmgr µÄÖ±½ÓĞ´Èë±£»¤£¬Ç¿ÖÆ·ÅĞĞ
+                        // 1. ç»•è¿‡ partmgr çš„ç›´æ¥å†™å…¥ä¿æŠ¤ï¼Œå¼ºåˆ¶æ”¾è¡Œ
                         nextStack->Flags |= SL_FORCE_DIRECT_WRITE;
 
-                        // 2. ÉùÃ÷ÎªÎŞ»º´æµÄÎïÀíµ×²ã IO£¬±ÜÃâ±»»º´æ¹ÜÀíÆ÷À¹½Ø
+                        // 2. å£°æ˜ä¸ºæ— ç¼“å­˜çš„ç‰©ç†åº•å±‚ IOï¼Œé¿å…è¢«ç¼“å­˜ç®¡ç†å™¨æ‹¦æˆª
                         irp->Flags |= IRP_NOCACHE;
 
-                        // ±ØĞëÎªÏÂ²ãÕ»Ìá¹© FileObject£¡
+                        // å¿…é¡»ä¸ºä¸‹å±‚æ ˆæä¾› FileObjectï¼
                         nextStack->FileObject = fileObject;
 
-                        // Îª IRP ¸½¼Óµ±Ç°Ïß³Ì£¬µ×²ãÇı¶¯³£ÒÀÀµ´Ë×Ö¶Î½øĞĞ×´Ì¬¼ì²é»ò APC Í¶µİ
+                        // ä¸º IRP é™„åŠ å½“å‰çº¿ç¨‹ï¼Œåº•å±‚é©±åŠ¨å¸¸ä¾èµ–æ­¤å­—æ®µè¿›è¡ŒçŠ¶æ€æ£€æŸ¥æˆ– APC æŠ•é€’
                         irp->Tail.Overlay.Thread = PsGetCurrentThread();
 
-                        // Ã÷È·Ö¸Ã÷ÇëÇóÀ´Ô´ÎªÄÚºËÄ£Ê½
+                        // æ˜ç¡®æŒ‡æ˜è¯·æ±‚æ¥æºä¸ºå†…æ ¸æ¨¡å¼
                         irp->RequestorMode = KernelMode;
 
-                        // 7. ÉèÖÃÍê³ÉÀı³Ì
+                        // 7. è®¾ç½®å®Œæˆä¾‹ç¨‹
                         IoSetCompletionRoutine(
                             irp,
                             WriterManualIrpCompletionRoutine,
                             &irpContext,
                             TRUE, TRUE, TRUE
                         );
-                        DbgPrint("[MBR_Debug] IoSetCompletionRoutine ÉèÖÃÍê±Ï\n");
+                        DbgPrint("[MBR_Debug] IoSetCompletionRoutine è®¾ç½®å®Œæ¯•\n");
 
                         // =========================================================================
-                        // ¡¾Ç¿ÖÆÈÆ¹ıºËĞÄÄ§·¨£ºWrite ¸ÄÔì¡¿
-                        // ²»µ÷ÓÃ IoCallDriver£¬Ö±½ÓÓ²¶¨Î»²¢ºô½Ğµ×²ãÅÉÇ²º¯Êı
+                        // ã€å¼ºåˆ¶ç»•è¿‡æ ¸å¿ƒé­”æ³•ï¼šWrite æ”¹é€ ã€‘
+                        // ä¸è°ƒç”¨ IoCallDriverï¼Œç›´æ¥ç¡¬å®šä½å¹¶å‘¼å«åº•å±‚æ´¾é£å‡½æ•°
                         // =========================================================================
 
-                        DbgPrint("[MBR_Debug] ×¼±¸Ê¹ÓÃÖ±½ÓĞŞ¸ÄÕ»Ö¸Õë+¶¨Î»Ô­Ê¼º¯ÊıµÄ·½Ê½Í¶µİ WRITE IRP...\n");
+                        DbgPrint("[MBR_Debug] å‡†å¤‡ä½¿ç”¨ç›´æ¥ä¿®æ”¹æ ˆæŒ‡é’ˆ+å®šä½åŸå§‹å‡½æ•°çš„æ–¹å¼æŠ•é€’ WRITE IRP...\n");
 
-                        // 8.1 ÊÖ¶¯ĞŞ¸Ä IRP Õ»Ö¸Õë£ºÄ£Äâ IoCallDriver µÄÄÚ²¿ÍÆÕ»ĞĞÎª
-                        // ½« CurrentStackLocation ÏòÏÂÒÆ¶¯Ò»²ã£¬Ê¹µ×²ãÇı¶¯ÄÜÕıÈ·¶Áµ½ÎÒÃÇ¸Õ²ÅÉèÖÃµÄ²ÎÊı
+                        // 8.1 æ‰‹åŠ¨ä¿®æ”¹ IRP æ ˆæŒ‡é’ˆï¼šæ¨¡æ‹Ÿ IoCallDriver çš„å†…éƒ¨æ¨æ ˆè¡Œä¸º
+                        // å°† CurrentStackLocation å‘ä¸‹ç§»åŠ¨ä¸€å±‚ï¼Œä½¿åº•å±‚é©±åŠ¨èƒ½æ­£ç¡®è¯»åˆ°æˆ‘ä»¬åˆšæ‰è®¾ç½®çš„å‚æ•°
                         IoSetNextIrpStackLocation(irp);
 
-                        // 8.2 ¶¨Î»Ô­Ê¼º¯Êı£º´ÓÄ¿±êµ×²ãÉè±¸µÄÇı¶¯¶ÔÏóÖĞ£¬Ö±½ÓÌáÈ¡ IRP_MJ_WRITE µÄº¯ÊıÖ¸Õë
+                        // 8.2 å®šä½åŸå§‹å‡½æ•°ï¼šä»ç›®æ ‡åº•å±‚è®¾å¤‡çš„é©±åŠ¨å¯¹è±¡ä¸­ï¼Œç›´æ¥æå– IRP_MJ_WRITE çš„å‡½æ•°æŒ‡é’ˆ
                         PDRIVER_DISPATCH originalDispatchWrite = targetDiskDevice->DriverObject->MajorFunction[IRP_MJ_WRITE];
 
-                        DbgPrint("[MBR_Debug] ³É¹¦ÌáÈ¡Ô­Ê¼ DispatchWrite º¯ÊıµØÖ·: 0x%p\n", originalDispatchWrite);
+                        DbgPrint("[MBR_Debug] æˆåŠŸæå–åŸå§‹ DispatchWrite å‡½æ•°åœ°å€: 0x%p\n", originalDispatchWrite);
 
-                        // 8.3 Ó²µ÷ÓÃ£ºÈÆ¹ıÏµÍ³ API£¬Ö±½Ó½«Éè±¸¶ÔÏóºÍ IRP ÅÄ¸øÔ­Ê¼º¯Êı
+                        // 8.3 ç¡¬è°ƒç”¨ï¼šç»•è¿‡ç³»ç»Ÿ APIï¼Œç›´æ¥å°†è®¾å¤‡å¯¹è±¡å’Œ IRP æ‹ç»™åŸå§‹å‡½æ•°
                         status = originalDispatchWrite(targetDiskDevice, irp);
 
-                        DbgPrint("[MBR_Debug] Ö±½Óµ÷ÓÃ DispatchWrite Á¢¿Ì·µ»ØµÄ×´Ì¬Âë: 0x%08X\n", status);
+                        DbgPrint("[MBR_Debug] ç›´æ¥è°ƒç”¨ DispatchWrite ç«‹åˆ»è¿”å›çš„çŠ¶æ€ç : 0x%08X\n", status);
                         // =========================================================================
 
-                        // 9. ÎŞÌõ¼şµÈ´ı
-                        DbgPrint("[MBR_Debug] KeWaitForSingleObject ¿ªÊ¼µÈ´ıÍê³ÉÀı³Ì´¥·¢ÊÂ¼ş...\n");
+                        // 9. æ— æ¡ä»¶ç­‰å¾…
+                        DbgPrint("[MBR_Debug] KeWaitForSingleObject å¼€å§‹ç­‰å¾…å®Œæˆä¾‹ç¨‹è§¦å‘äº‹ä»¶...\n");
                         KeWaitForSingleObject(&irpContext.Event, Executive, KernelMode, FALSE, NULL);
-                        DbgPrint("[MBR_Debug] KeWaitForSingleObject µÈ´ı½áÊø£¡\n");
+                        DbgPrint("[MBR_Debug] KeWaitForSingleObject ç­‰å¾…ç»“æŸï¼\n");
 
-                        // Í³Ò»ÔÚÍê³ÉÀı³ÌºÍÕâÀïÇåÀí IRP ºÍ MDL£¬È·±£ÎŞÂÛ³É¹¦Óë·ñ¶¼²»»áĞ¹Â©×ÊÔ´
+                        // ç»Ÿä¸€åœ¨å®Œæˆä¾‹ç¨‹å’Œè¿™é‡Œæ¸…ç† IRP å’Œ MDLï¼Œç¡®ä¿æ— è®ºæˆåŠŸä¸å¦éƒ½ä¸ä¼šæ³„æ¼èµ„æº
                         if (irp->MdlAddress != NULL) {
-                            DbgPrint("[MBR_Debug] ÕıÔÚÇåÀí MDL: 0x%p\n", irp->MdlAddress);
+                            DbgPrint("[MBR_Debug] æ­£åœ¨æ¸…ç† MDL: 0x%p\n", irp->MdlAddress);
                             IoFreeMdl(irp->MdlAddress);
                             irp->MdlAddress = NULL;
                         }
-                        DbgPrint("[MBR_Debug] ÕıÔÚÇåÀí IRP: 0x%p\n", irp);
+                        DbgPrint("[MBR_Debug] æ­£åœ¨æ¸…ç† IRP: 0x%p\n", irp);
                         IoFreeIrp(irp);
 
-                        // ´ÓÎÒÃÇ×Ô¶¨ÒåµÄÉÏÏÂÎÄÖĞ»ñÈ¡ÕæÊµµÄµ×²ãÍê³É×´Ì¬
+                        // ä»æˆ‘ä»¬è‡ªå®šä¹‰çš„ä¸Šä¸‹æ–‡ä¸­è·å–çœŸå®çš„åº•å±‚å®ŒæˆçŠ¶æ€
                         status = irpContext.Status;
-                        DbgPrint("[MBR_Debug] IRP Êµ¼Ê×îÖÕÍê³É×´Ì¬: 0x%08X\n", status);
+                        DbgPrint("[MBR_Debug] IRP å®é™…æœ€ç»ˆå®ŒæˆçŠ¶æ€: 0x%08X\n", status);
 
                         if (NT_SUCCESS(status)) {
-                            DbgPrint("[MBR_Debug] ³É¹¦: ÍêÈ«ÊÖ¶¯¹¹ÔìµÄ IRP Ğ´ÈëÍê³É!\n");
-                            TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE, "Í¨¹ıÍêÈ«ÊÖ¶¯¹¹ÔìµÄ IRP Ğ´Èë³É¹¦!");
+                            DbgPrint("[MBR_Debug] æˆåŠŸ: å®Œå…¨æ‰‹åŠ¨æ„é€ çš„ IRP å†™å…¥å®Œæˆ!\n");
+                            TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_QUEUE, "é€šè¿‡å®Œå…¨æ‰‹åŠ¨æ„é€ çš„ IRP å†™å…¥æˆåŠŸ!");
                         }
                         else {
-                            DbgPrint("[MBR_Debug] ´íÎó: µ×²ãÓ²¼ş´¦Àí IRP ¾Ü¾ø»òÊ§°Ü! ×´Ì¬Âë: 0x%08X\n", status);
-                            TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "µ×²ãÓ²¼ş´¦Àí IRP ¾Ü¾ø»òÊ§°Ü: %!STATUS!", status);
+                            DbgPrint("[MBR_Debug] é”™è¯¯: åº•å±‚ç¡¬ä»¶å¤„ç† IRP æ‹’ç»æˆ–å¤±è´¥! çŠ¶æ€ç : 0x%08X\n", status);
+                            TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "åº•å±‚ç¡¬ä»¶å¤„ç† IRP æ‹’ç»æˆ–å¤±è´¥: %!STATUS!", status);
                         }
 
                     }
                     else {
-                        DbgPrint("[MBR_Debug] ´íÎó: IoAllocateMdl ·ÖÅäÊ§°Ü!\n");
-                        IoFreeIrp(irp); // MDL ·ÖÅäÊ§°ÜĞèÇåÀí IRP
+                        DbgPrint("[MBR_Debug] é”™è¯¯: IoAllocateMdl åˆ†é…å¤±è´¥!\n");
+                        IoFreeIrp(irp); // MDL åˆ†é…å¤±è´¥éœ€æ¸…ç† IRP
                         status = STATUS_INSUFFICIENT_RESOURCES;
-                        TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "IoAllocateMdl Ê§°Ü!");
+                        TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "IoAllocateMdl å¤±è´¥!");
                     }
                 }
                 else {
-                    DbgPrint("[MBR_Debug] ´íÎó: IoAllocateIrp ·ÖÅäÊ§°Ü!\n");
+                    DbgPrint("[MBR_Debug] é”™è¯¯: IoAllocateIrp åˆ†é…å¤±è´¥!\n");
                     status = STATUS_INSUFFICIENT_RESOURCES;
-                    TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "IoAllocateIrp Ê§°Ü!");
+                    TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "IoAllocateIrp å¤±è´¥!");
                 }
 
-                // ×îºó£¬ÇåÀíÎÒÃÇÔÚÕâ¸ö¹ı³ÌÖĞ»ñÈ¡µÄ¶ÔÏóÒıÓÃ£¬·ÀÖ¹ÄÚ´æĞ¹Â©
-                DbgPrint("[MBR_Debug] ½âÒıÓÃÄ¿±ê´ÅÅÌÉè±¸¶ÔÏó: 0x%p\n", targetDiskDevice);
+                // æœ€åï¼Œæ¸…ç†æˆ‘ä»¬åœ¨è¿™ä¸ªè¿‡ç¨‹ä¸­è·å–çš„å¯¹è±¡å¼•ç”¨ï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
+                DbgPrint("[MBR_Debug] è§£å¼•ç”¨ç›®æ ‡ç£ç›˜è®¾å¤‡å¯¹è±¡: 0x%p\n", targetDiskDevice);
                 ObDereferenceObject(targetDiskDevice);
 
-                // 10. ½âÒıÓÃÎÄ¼ş¶ÔÏó
-                DbgPrint("[MBR_Debug] ½âÒıÓÃ FileObject: 0x%p\n", fileObject);
+                // 10. è§£å¼•ç”¨æ–‡ä»¶å¯¹è±¡
+                DbgPrint("[MBR_Debug] è§£å¼•ç”¨ FileObject: 0x%p\n", fileObject);
                 ObDereferenceObject(fileObject);
             }
             else {
-                DbgPrint("[MBR_Debug] ´íÎó: IoGetDeviceObjectPointer ÕÒ²»µ½´ÅÅÌ! ×´Ì¬Âë: 0x%08X\n", status);
-                TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "IoGetDeviceObjectPointer ÕÒ²»µ½´ÅÅÌ: %!STATUS!", status);
+                DbgPrint("[MBR_Debug] é”™è¯¯: IoGetDeviceObjectPointer æ‰¾ä¸åˆ°ç£ç›˜! çŠ¶æ€ç : 0x%08X\n", status);
+                TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "IoGetDeviceObjectPointer æ‰¾ä¸åˆ°ç£ç›˜: %!STATUS!", status);
             }
 
-            DbgPrint("[MBR_Debug] Íê³É WDF Request. ·µ»Ø×´Ì¬: 0x%08X, ĞÅÏ¢Á¿: %u\n", status, NT_SUCCESS(status) ? params->WriteLength : 0);
+            DbgPrint("[MBR_Debug] å®Œæˆ WDF Request. è¿”å›çŠ¶æ€: 0x%08X, ä¿¡æ¯é‡: %u\n", status, NT_SUCCESS(status) ? params->WriteLength : 0);
             WdfRequestCompleteWithInformation(Request, status, NT_SUCCESS(status) ? params->WriteLength : 0);
             return;
         }
         else {
-            DbgPrint("[MBR_Debug] WdfRequestRetrieveInputBuffer Ê§°Ü»ò params Îª NULL\n");
+            DbgPrint("[MBR_Debug] WdfRequestRetrieveInputBuffer å¤±è´¥æˆ– params ä¸º NULL\n");
         }
     }
     else if (IoControlCode == IOCTL_DISK_READ_COMMAND) {
         PDISK_READ_PARAMS readParams = NULL;
-        DbgPrint("[MBR_Debug] ²¶»ñµ½Ä¿±ê¿ØÖÆÂë: IOCTL_DISK_READ_COMMAND\n");
+        DbgPrint("[MBR_Debug] æ•è·åˆ°ç›®æ ‡æ§åˆ¶ç : IOCTL_DISK_READ_COMMAND\n");
 
         size_t minRequiredSize = FIELD_OFFSET(DISK_READ_PARAMS, Data);
 
-        // Ê¹ÓÃ OutputBuffer ¼´¿É£¬ÒòÎªÊÇ METHOD_BUFFERED£¬ËüÓë InputBuffer ¹²ÏíÍ¬Ò»¿éÄÚ´æ
+        // ä½¿ç”¨ OutputBuffer å³å¯ï¼Œå› ä¸ºæ˜¯ METHOD_BUFFEREDï¼Œå®ƒä¸ InputBuffer å…±äº«åŒä¸€å—å†…å­˜
         status = WdfRequestRetrieveOutputBuffer(Request, minRequiredSize, (PVOID*)&readParams, &length);
 
         if (NT_SUCCESS(status) && readParams != NULL) {
 
-            // Ğ£ÑéÓ¦ÓÃ²ã·ÖÅäµÄ×Ü»º³å³ØÊÇ·ñ×ã¹»×°ÏÂÉùÃ÷Òª¶ÁÈ¡µÄ³¤¶È
+            // æ ¡éªŒåº”ç”¨å±‚åˆ†é…çš„æ€»ç¼“å†²æ± æ˜¯å¦è¶³å¤Ÿè£…ä¸‹å£°æ˜è¦è¯»å–çš„é•¿åº¦
             if (length < minRequiredSize || readParams->ReadLength >(length - minRequiredSize)) {
-                DbgPrint("[MBR_Debug] ÑÏÖØ´íÎó: »º³åÇø²»×ãÒÔÈİÄÉÇëÇóµÄ¶ÁÈ¡³¤¶È!\n");
+                DbgPrint("[MBR_Debug] ä¸¥é‡é”™è¯¯: ç¼“å†²åŒºä¸è¶³ä»¥å®¹çº³è¯·æ±‚çš„è¯»å–é•¿åº¦!\n");
                 WdfRequestComplete(Request, STATUS_BUFFER_TOO_SMALL);
                 return;
             }
@@ -521,18 +521,18 @@ WriterEvtIoDeviceControl(
                             IoSetCompletionRoutine(irp, WriterManualIrpCompletionRoutine, &irpContext, TRUE, TRUE, TRUE);
 
                             // =========================================================================
-                            // ¡¾Ç¿ÖÆ¶ÁÈ¡ÈÆ¹ı£ºĞŞ¸ÄÖ¸Õë + ¶¨Î»Ô­Ê¼º¯Êı¡¿
+                            // ã€å¼ºåˆ¶è¯»å–ç»•è¿‡ï¼šä¿®æ”¹æŒ‡é’ˆ + å®šä½åŸå§‹å‡½æ•°ã€‘
                             // =========================================================================
                             IoSetNextIrpStackLocation(irp);
 
                             PDRIVER_DISPATCH originalDispatchRead = targetDiskDevice->DriverObject->MajorFunction[IRP_MJ_READ];
 
-                            DbgPrint("[MBR_Debug] ÈÆ¹ı IoCallDriver£¬Ö±½ÓÓ²µ÷ÓÃµ×²ã DispatchRead º¯ÊıµØÖ·: 0x%p\n", originalDispatchRead);
+                            DbgPrint("[MBR_Debug] ç»•è¿‡ IoCallDriverï¼Œç›´æ¥ç¡¬è°ƒç”¨åº•å±‚ DispatchRead å‡½æ•°åœ°å€: 0x%p\n", originalDispatchRead);
 
                             status = originalDispatchRead(targetDiskDevice, irp);
                             // =========================================================================
 
-                            // ĞŞ¸´Òş»¼£º±ØĞëÎŞÌõ¼şµÈ´ı£¬ÒòÎªÍê³ÉÀı³Ì·µ»ØÁË STATUS_MORE_PROCESSING_REQUIRED
+                            // ä¿®å¤éšæ‚£ï¼šå¿…é¡»æ— æ¡ä»¶ç­‰å¾…ï¼Œå› ä¸ºå®Œæˆä¾‹ç¨‹è¿”å›äº† STATUS_MORE_PROCESSING_REQUIRED
                             KeWaitForSingleObject(&irpContext.Event, Executive, KernelMode, FALSE, NULL);
 
                             if (irp->MdlAddress != NULL) {
@@ -541,7 +541,7 @@ WriterEvtIoDeviceControl(
                             IoFreeIrp(irp);
 
                             status = irpContext.Status;
-                            DbgPrint("[MBR_Debug] Ç¿ÖÆ¶ÁÈ¡ IRP ×îÖÕÍê³É×´Ì¬: 0x%08X\n", status);
+                            DbgPrint("[MBR_Debug] å¼ºåˆ¶è¯»å– IRP æœ€ç»ˆå®ŒæˆçŠ¶æ€: 0x%08X\n", status);
 
                         }
                         else {
@@ -566,11 +566,11 @@ WriterEvtIoDeviceControl(
         }
     }
     else {
-        DbgPrint("[MBR_Debug] Î´Ê¶±ğµÄ¿ØÖÆÂë: 0x%08X\n", IoControlCode);
-	    TraceEvents(TRACE_LEVEL_WARNING, TRACE_QUEUE, "Î´Ê¶±ğµÄ¿ØÖÆÂë: 0x%08X", IoControlCode);
+        DbgPrint("[MBR_Debug] æœªè¯†åˆ«çš„æ§åˆ¶ç : 0x%08X\n", IoControlCode);
+	    TraceEvents(TRACE_LEVEL_WARNING, TRACE_QUEUE, "æœªè¯†åˆ«çš„æ§åˆ¶ç : 0x%08X", IoControlCode);
     }
 
-    DbgPrint("[MBR_Debug] <--- WriterEvtIoDeviceControl Exit. Íê³ÉÇëÇó²¢·µ»Ø×´Ì¬: 0x%08X\n", status);
+    DbgPrint("[MBR_Debug] <--- WriterEvtIoDeviceControl Exit. å®Œæˆè¯·æ±‚å¹¶è¿”å›çŠ¶æ€: 0x%08X\n", status);
     WdfRequestComplete(Request, status);
     return;
 }
